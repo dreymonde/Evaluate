@@ -1,6 +1,6 @@
 # Evaluate
 
-Converts a string to an expression and evaluate it.
+Converts a string to an expression and evaluates it.
 
 ## Usage
 
