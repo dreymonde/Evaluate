@@ -4,7 +4,7 @@ public protocol ExpressionOperation {
     
     var priority: Int { get }
     
-    func evaluate(objects: (Int, Int)) -> Int
+    func evaluate(left: Int, right: Int) -> Int
     
 }
 
@@ -32,18 +32,18 @@ public enum BasicArithmetic : ExpressionOperation, CustomStringConvertible {
         case .subtraction:
             return "-"
         case .multiplication:
-            return "*"
+            return "×"
         }
     }
     
-    public func evaluate(objects: (Int, Int)) -> Int {
+    public func evaluate(left: Int, right: Int) -> Int {
         switch self {
         case .addition:
-            return objects.0 + objects.1
+            return left + right
         case .subtraction:
-            return objects.0 - objects.1
+            return left - right
         case .multiplication:
-            return objects.0 * objects.1
+            return left * right
         }
     }
     
@@ -90,7 +90,7 @@ public class Expression {
             print("Evaluating (\(string()))")
             switch left {
             case .number(let number):
-                return operation.evaluate(objects: (number, right))
+                return operation.evaluate(left: number, right: right)
             case .unsolved(let node):
                 if node.operation.priority >= self.operation.priority {
                     let evaluated = node.evaluate()
@@ -119,17 +119,31 @@ public class Expression {
     
 }
 
-extension Int {
+public protocol Operatable {
+    
+    func node(withOperation operation: ExpressionOperation, number: Int) -> Expression.Node
+    
+}
+
+extension Operatable {
     
     public func op(_ operation: BasicArithmetic, _ number: Int) -> Expression.Node {
+        return node(withOperation: operation, number: number)
+    }
+    
+}
+
+extension Int : Operatable {
+    
+    public func node(withOperation operation: ExpressionOperation, number: Int) -> Expression.Node {
         return Expression.Node(left: self, operation: operation, right: number)
     }
     
 }
 
-extension Expression.Node {
+extension Expression.Node : Operatable {
     
-    public func op(_ operation: BasicArithmetic, _ number: Int) -> Expression.Node {
+    public func node(withOperation operation: ExpressionOperation, number: Int) -> Expression.Node {
         return Expression.Node(left: self, operation: operation, right: number)
     }
     
