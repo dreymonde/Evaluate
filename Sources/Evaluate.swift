@@ -60,7 +60,7 @@ public class Expression {
         
         var left: Neighbor
         var right: Int
-        let operation: ExpressionOperation
+        var operation: ExpressionOperation
         
         public init(left: Int, operation: ExpressionOperation, right: Int) {
             self.left = .number(left)
@@ -86,21 +86,52 @@ public class Expression {
             return str
         }
         
-        func evaluate() -> Int {
-            print("Evaluating (\(string()))")
+        func evaluate(caller: Node?) {
             switch left {
             case .number(let number):
-                return operation.evaluate(left: number, right: right)
+                print("flat-eval-numb \(number)\(operation)\(right)")
+                let result = operation.evaluate(left: number, right: right)
+                caller?.left = .number(result)
             case .unsolved(let node):
-                if node.operation.priority >= self.operation.priority {
-                    let evaluated = node.evaluate()
-                    self.left = .number(evaluated)
-                    return self.evaluate()
+                print("flat-eval-node \(node.right)\(operation)\(right)")
+                let result = operation.evaluate(left: node.right, right: right)
+                node.right = result
+                if let caller = caller {
+                    caller.left = .unsolved(node)
                 } else {
-                    self.left = .number(node.right)
-                    let evaluated = self.evaluate()
-                    node.right = evaluated
-                    return node.evaluate()
+                    self.right = result
+                    self.operation = node.operation
+                    self.left = node.left
+                }
+            }
+        }
+        
+        func fold() {
+            var highestCaller: Node? = nil
+            var highest = self
+            var current = self
+            while true {
+                switch current.left {
+                case .number:
+                    highest.evaluate(caller: highestCaller)
+                    return
+                case .unsolved(let node):
+                    if node.operation.priority >= highest.operation.priority {
+                        highest = node
+                        highestCaller = current
+                    }
+                    current = node
+                }
+            }
+        }
+        
+        func evaluateAll() -> Int {
+            while true {
+                switch left {
+                case .number(let number):
+                    return operation.evaluate(left: number, right: right)
+                case .unsolved:
+                    fold()
                 }
             }
         }
@@ -114,7 +145,7 @@ public class Expression {
     }
     
     public func evaluate() -> Int {
-        return rightmostNode.evaluate()
+        return rightmostNode.evaluateAll()
     }
     
 }

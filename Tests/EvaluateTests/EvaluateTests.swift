@@ -58,10 +58,10 @@ class EvaluateTests: XCTestCase {
         XCTAssertEqual(result, 256)
     }
     
-    func testProcess() {
+    func testParse() {
         let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
         let tokens = UnparsedExpression("7-9 times 10 + 187").parse(with: parser)
-        print(tokens)
+        XCTAssertEqual(tokens.expression_debug(), "7-9×10+187")
     }
     
     func testNumbersParser() {
@@ -100,6 +100,63 @@ class EvaluateTests: XCTestCase {
                 XCTFail()
             }
         }
+    }
+    
+    func testTokensToExpressionInvalidNotNumber() {
+        XCTAssertThrowsError(try Expression(from: "seven plus plus")) { (error) in
+            switch error {
+            case Expression.Error.notANumber:
+                break
+            default:
+                XCTFail()
+            }
+        }
+    }
+    
+    func testTokensToExpressionInvalidFirstNotNumber() {
+        XCTAssertThrowsError(try Expression(from: "* seven minues")) { (error) in
+            switch error {
+            case Expression.Error.firstTokenIsNotANumber:
+                break
+            default:
+                XCTFail()
+            }
+        }
+    }
+    
+    func testTokensToExpressionInvalidNoOperations() {
+        XCTAssertThrowsError(try Expression(from: "seven")) { (error) in
+            switch error {
+            case Expression.Error.noOperations:
+                break
+            default:
+                XCTFail()
+            }
+        }
+    }
+    
+    func testTokensToExpressionInvalidNoTokens() {
+        XCTAssertThrowsError(try Expression(from: "")) { (error) in
+            switch error {
+            case Expression.Error.noTokens:
+                break
+            default:
+                XCTFail()
+            }
+        }
+    }
+    
+    func testEndToEnd1() throws {
+        let expression = try Expression(from: "five minus seven + 17 * two times nine")
+        print(expression.rightmostNode.string())
+        let result = expression.evaluate()
+        XCTAssertEqual(result, 304)
+    }
+    
+    func testEndToEnd2() throws {
+        let expression = try Expression(from: "nineteen - 19 + 4 * 18 - seven adding five times twelve plus 11 times 10")
+        let result = expression.evaluate()
+        XCTAssertEqual(result, 235)
     }
     
     func testUsage() throws {
