@@ -102,6 +102,13 @@ class EvaluateTests: XCTestCase {
         }
     }
     
+    func testUsage() throws {
+        let inputString = "one + 14 minus 2 times five"
+        let expression = try Expression(from: inputString)
+        let result = expression.evaluate() // 5
+        XCTAssertEqual(result, 5)
+    }
+    
     static var allTests = [
         ("test1", test1),
         ("test2", test2),
