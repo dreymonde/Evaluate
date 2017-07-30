@@ -60,28 +60,28 @@ class EvaluateTests: XCTestCase {
     
     func testParse() {
         let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
-        let tokens = UnparsedExpression("7-9 times 10 + 187").parse(with: parser)
+        let tokens = UnparsedExpression("7-9 times 10 + 187").parse(parser: parser, processor: .noProcessing)
         XCTAssertEqual(tokens.expression_debug(), "7-9×10+187")
     }
     
-    func testNumbersParser() {
+    func testNumbersParserCollapse() {
         let parser = NumberFormatter.expressionTokenParser
-        let tokens = UnparsedExpression("7 19 five seven one hundred seventy two").parse(with: parser)
-        let awaited = [7, 19, 5, 7, 1, 70, 2].map(Expression.Token.number)
+        let tokens = UnparsedExpression("seventy-two").parse(parser: parser, processor: .collapsingNumbers)
+        let awaited = [72].map(Expression.Token.number)
         XCTAssertEqual(tokens.expression_debug(), awaited.expression_debug())
     }
     
     func testTokensToExpression() throws {
         let string = "7-9*10 plus 15 minus 7 times 2"
         let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
-        let tokens = UnparsedExpression(string).parse(with: parser)
+        let tokens = UnparsedExpression(string).parse(parser: parser, processor: .noProcessing)
         let expression = try Expression(tokens: tokens)
         XCTAssertEqual("7-9×10+15-7×2", expression.rightmostNode.fullString())
     }
     
     func testTokensToExpressionInvalidEvenTokens() {
         let string = "seven plus one two minus ten"
-        XCTAssertThrowsError(try Expression(from: string)) { (error) in
+        XCTAssertThrowsError(try Expression(from: string, processor: .noProcessing)) { (error) in
             switch error {
             case Expression.Error.evenNumberOfTokens:
                 break
@@ -92,7 +92,7 @@ class EvaluateTests: XCTestCase {
     }
     
     func testTokensToExpressionInvalidNotOperation() {
-        XCTAssertThrowsError(try Expression(from: "seven plus one two minus ten times")) { (error) in
+        XCTAssertThrowsError(try Expression(from: "seven plus one two minus ten times", processor: .noProcessing)) { (error) in
             switch error {
             case Expression.Error.notOperation:
                 break
@@ -160,9 +160,9 @@ class EvaluateTests: XCTestCase {
     }
     
     func testEndToEnd3() throws {
-        let expression = try Expression(from: "19*23/12+34*12-5*2/2*3-1")
+        let expression = try Expression(from: "19*23/12+34*12-5*2 divided by 2*3-1 plus eighty six")
         let result = expression.evaluate()
-        XCTAssertEqual(result, 428)
+        XCTAssertEqual(result, 514)
     }
     
     func testUsage() throws {

@@ -70,11 +70,11 @@ public struct ExpressionTokenParser {
     
     let _parse: (String, String) -> Expression.Token?
     
-    init(elementOfTag: @escaping (String, String) -> Expression.Token?) {
+    public init(elementOfTag: @escaping (String, String) -> Expression.Token?) {
         self._parse = elementOfTag
     }
     
-    func parse(element: String, of tag: String) -> Expression.Token? {
+    public func parse(element: String, of tag: String) -> Expression.Token? {
         return _parse(element, tag)
     }
     
@@ -92,6 +92,55 @@ public struct ExpressionTokenParser {
     
 }
 
+public struct ExpressionTokensProcessor {
+    
+    let _process: ([Expression.Token]) -> [Expression.Token]
+    
+    public init(process: @escaping ([Expression.Token]) -> [Expression.Token]) {
+        self._process = process
+    }
+    
+    public func process(tokens: [Expression.Token]) -> [Expression.Token] {
+        return _process(tokens)
+    }
+    
+    public func chained(with anotherProcessor: ExpressionTokensProcessor) -> ExpressionTokensProcessor {
+        return ExpressionTokensProcessor(process: { (tokens) -> [Expression.Token] in
+            let firstRound = self.process(tokens: tokens)
+            return anotherProcessor.process(tokens: firstRound)
+        })
+    }
+    
+    public static var noProcessing: ExpressionTokensProcessor {
+        return ExpressionTokensProcessor(process: { $0 })
+    }
+    
+    public static var collapsingNumbers: ExpressionTokensProcessor {
+        return ExpressionTokensProcessor(process: { (tokens) -> [Expression.Token] in
+            var new: [Expression.Token] = []
+            var previousNumber: Int?
+            for token in tokens {
+                switch token {
+                case .number(let num):
+                    previousNumber = (previousNumber ?? 0) + num
+                case .operation:
+                    if let previousNumber = previousNumber {
+                        new.append(.number(previousNumber))
+                    }
+                    previousNumber = nil
+                    new.append(token)
+                }
+            }
+            if let previousNumber = previousNumber {
+                new.append(.number(previousNumber))
+            }
+            print(new)
+            return new
+        })
+    }
+    
+}
+
 public struct UnparsedExpression {
     
     public init(_ unparsedString: String) {
@@ -100,7 +149,7 @@ public struct UnparsedExpression {
     
     public let unparsedString: String
     
-    public func parse(with parser: ExpressionTokenParser) -> [Expression.Token] {
+    public func parse(parser: ExpressionTokenParser, processor: ExpressionTokensProcessor) -> [Expression.Token] {
         var tokens: [Expression.Token] = []
         let fullRange = unparsedString.startIndex ..< unparsedString.endIndex
         unparsedString.enumerateLinguisticTags(in: fullRange, scheme: NSLinguisticTagSchemeLexicalClass) { (tag, range, _, _) in
@@ -109,7 +158,7 @@ public struct UnparsedExpression {
                 tokens.append(token)
             }
         }
-        return tokens
+        return processor.process(tokens: tokens)
     }
     
 }
@@ -181,8 +230,9 @@ extension Expression {
 extension Expression {
     
     public convenience init(from string: String,
-                            parser: ExpressionTokenParser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)) throws {
-        let tokens = UnparsedExpression(string).parse(with: parser)
+                            parser: ExpressionTokenParser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser),
+                            processor: ExpressionTokensProcessor = ExpressionTokensProcessor.collapsingNumbers) throws {
+        let tokens = UnparsedExpression(string).parse(parser: parser, processor: processor)
         try self.init(tokens: tokens)
     }
     
