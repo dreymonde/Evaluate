@@ -28,6 +28,8 @@ extension BasicArithmetic {
                 return .operation(BasicArithmetic.addition)
             case "*", "×", "times":
                 return .operation(BasicArithmetic.multiplication)
+            case "/", "divided", "÷":
+                return .operation(BasicArithmetic.division)
             default:
                 return nil
             }

@@ -38,7 +38,7 @@ class EvaluateTests: XCTestCase {
             .op(.multiplication, 9)
             .op(.addition, 2)
             .expression()
-        XCTAssertEqual(expression.rightmostNode.string(), "1+5-7×9+2")
+        XCTAssertEqual(expression.rightmostNode.fullString(), "1+5-7×9+2")
         let result = expression.evaluate()
         XCTAssertEqual(result, -55)
     }
@@ -53,7 +53,7 @@ class EvaluateTests: XCTestCase {
             .op(.addition, 1)
             .op(.multiplication, 2)
             .expression()
-        XCTAssertEqual(expression.rightmostNode.string(), "7-9-18-33+15×21-8+1×2")
+        XCTAssertEqual(expression.rightmostNode.fullString(), "7-9-18-33+15×21-8+1×2")
         let result = expression.evaluate()
         XCTAssertEqual(result, 256)
     }
@@ -76,7 +76,7 @@ class EvaluateTests: XCTestCase {
         let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
         let tokens = UnparsedExpression(string).parse(with: parser)
         let expression = try Expression(tokens: tokens)
-        XCTAssertEqual("7-9×10+15-7×2", expression.rightmostNode.string())
+        XCTAssertEqual("7-9×10+15-7×2", expression.rightmostNode.fullString())
     }
     
     func testTokensToExpressionInvalidEvenTokens() {
@@ -157,6 +157,12 @@ class EvaluateTests: XCTestCase {
         let expression = try Expression(from: "nineteen - 19 + 4 * 18 - seven adding five times twelve plus 11 times 10")
         let result = expression.evaluate()
         XCTAssertEqual(result, 235)
+    }
+    
+    func testEndToEnd3() throws {
+        let expression = try Expression(from: "19*23/12+34*12-5*2/2*3-1")
+        let result = expression.evaluate()
+        XCTAssertEqual(result, 428)
     }
     
     func testUsage() throws {

@@ -13,14 +13,13 @@ public enum BasicArithmetic : ExpressionOperation, CustomStringConvertible {
     case addition
     case subtraction
     case multiplication
+    case division
     
     public var priority: Int {
         switch self {
-        case .addition:
+        case .addition, .subtraction:
             return 5
-        case .subtraction:
-            return 5
-        case .multiplication:
+        case .multiplication, .division:
             return 10
         }
     }
@@ -33,6 +32,8 @@ public enum BasicArithmetic : ExpressionOperation, CustomStringConvertible {
             return "-"
         case .multiplication:
             return "×"
+        case .division:
+            return "/"
         }
     }
     
@@ -44,6 +45,8 @@ public enum BasicArithmetic : ExpressionOperation, CustomStringConvertible {
             return left - right
         case .multiplication:
             return left * right
+        case .division:
+            return left / right
         }
     }
     
@@ -75,65 +78,75 @@ public class Expression {
         }
         
         public func string() -> String {
+            let num: Int = {
+                switch left {
+                case .number(let number):
+                    return number
+                case .unsolved(let node):
+                    return node.right
+                }
+            }()
+            return "\(num)\(operation)\(right)"
+        }
+        
+        public func fullString() -> String {
             var str = ""
             switch left {
             case .number(let number):
                 str.append(String(number))
             case .unsolved(let node):
-                str.append(node.string())
+                str.append(node.fullString())
             }
             str.append("\(operation)\(right)")
             return str
         }
         
-        func evaluate(caller: Node?) {
+        func evaluate() -> Neighbor {
             switch left {
             case .number(let number):
-                print("flat-eval-numb \(number)\(operation)\(right)")
                 let result = operation.evaluate(left: number, right: right)
-                caller?.left = .number(result)
+                return .number(result)
             case .unsolved(let node):
-                print("flat-eval-node \(node.right)\(operation)\(right)")
                 let result = operation.evaluate(left: node.right, right: right)
                 node.right = result
-                if let caller = caller {
-                    caller.left = .unsolved(node)
+                return .unsolved(node)
+            }
+        }
+        
+        func fold(highest: Node) -> (neighbor: Neighbor, isAfterEvaluatingHighest: Bool) {
+            switch left {
+            case .number:
+                let neighbor = highest.evaluate()
+                return (neighbor, isAfterEvaluatingHighest: true)
+            case .unsolved(let node):
+                if node.operation.priority >= highest.operation.priority {
+                    let folded = node.fold(highest: node)
+                    self.left = folded.neighbor
+                    return (.unsolved(self), isAfterEvaluatingHighest: false)
                 } else {
-                    self.right = result
-                    self.operation = node.operation
-                    self.left = node.left
+                    let folded = node.fold(highest: highest)
+                    if folded.isAfterEvaluatingHighest {
+                        return folded
+                    } else {
+                        self.left = folded.neighbor
+                        return (.unsolved(self), isAfterEvaluatingHighest: false)
+                    }
                 }
             }
         }
         
-        func fold() {
-            var highestCaller: Node? = nil
-            var highest = self
-            var current = self
-            while true {
-                switch current.left {
-                case .number:
-                    highest.evaluate(caller: highestCaller)
-                    return
-                case .unsolved(let node):
-                    if node.operation.priority >= highest.operation.priority {
-                        highest = node
-                        highestCaller = current
-                    }
-                    current = node
-                }
+        func fullFold() -> Int {
+            let folded = fold(highest: self)
+            switch folded.neighbor {
+            case .number(let num):
+                return num
+            case .unsolved(let node):
+                return node.fullFold()
             }
         }
         
         func evaluateAll() -> Int {
-            while true {
-                switch left {
-                case .number(let number):
-                    return operation.evaluate(left: number, right: right)
-                case .unsolved:
-                    fold()
-                }
-            }
+            return fullFold()
         }
         
     }
