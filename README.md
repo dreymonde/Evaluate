@@ -15,3 +15,4 @@ Supported operations:
 - Addition
 - Subtraction
 - Multiplication
+- Division (integer)
