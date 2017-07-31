@@ -59,13 +59,13 @@ class EvaluateTests: XCTestCase {
     }
     
     func testParse() {
-        let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
+        let parser = ExpressionTokenParser.numbers.chained(with: .basicArithmetic)
         let tokens = UnparsedExpression("7-9 times 10 + 187").parse(parser: parser, processor: .noProcessing)
         XCTAssertEqual(tokens.expression_debug(), "7.0-9.0×10.0+187.0")
     }
     
     func testNumbersParserCollapse() {
-        let parser = NumberFormatter.expressionTokenParser
+        let parser = ExpressionTokenParser.numbers
         let tokens = UnparsedExpression("seventy-two").parse(parser: parser, processor: .collapsingNumbers)
         let awaited = [72].map(Expression.Token.number)
         XCTAssertEqual(tokens.expression_debug(), awaited.expression_debug())
@@ -73,7 +73,7 @@ class EvaluateTests: XCTestCase {
     
     func testTokensToExpression() throws {
         let string = "7-9*10 plus 15 minus 7 times 2"
-        let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
+        let parser = ExpressionTokenParser.numbers.chained(with: .basicArithmetic)
         let tokens = UnparsedExpression(string).parse(parser: parser, processor: .noProcessing)
         let expression = try Expression(tokens: tokens)
         XCTAssertEqual("7-9×10+15-7×2", expression.rightmostNode.fullString())
@@ -170,6 +170,15 @@ class EvaluateTests: XCTestCase {
         let expression = try Expression(from: inputString)
         let result = expression.evaluate() // 5
         XCTAssertEqual(result, 5)
+    }
+    
+    func testUsageLong() throws {
+        let input = UnparsedExpression("eleven minus 10 times fifty five / 4 + 4")
+        let fullParser = ExpressionTokenParser.numbers.chained(with: .basicArithmetic)
+        let tokens = input.parse(parser: fullParser, processor: .collapsingNumbers)
+        let expression = try Expression(tokens: tokens)
+        let result = expression.evaluate()
+        XCTAssertEqual(result, -122.5)
     }
     
     static var allTests = [
