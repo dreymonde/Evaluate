@@ -11,7 +11,7 @@ import Foundation
 extension Expression {
     
     public enum Token {
-        case number(Int)
+        case number(Double)
         case operation(ExpressionOperation)
     }
     
@@ -53,12 +53,12 @@ extension NumberFormatter {
         nf.numberStyle = .decimal
         return nf
     }()
-
+    
     public static let expressionTokenParser: ExpressionTokenParser = ExpressionTokenParser { (element, tag) -> Expression.Token? in
-        if let decimal = NumberFormatter.decimal.number(from: element) as? Int {
+        if let decimal = NumberFormatter.decimal.number(from: element) as? Double {
             return .number(decimal)
         }
-        if let spellOut  = NumberFormatter.spellOut.number(from: element) as? Int {
+        if let spellOut  = NumberFormatter.spellOut.number(from: element) as? Double {
             return .number(spellOut)
         }
         return nil
@@ -118,7 +118,7 @@ public struct ExpressionTokensProcessor {
     public static var collapsingNumbers: ExpressionTokensProcessor {
         return ExpressionTokensProcessor(process: { (tokens) -> [Expression.Token] in
             var new: [Expression.Token] = []
-            var previousNumber: Int?
+            var previousNumber: Double?
             for token in tokens {
                 switch token {
                 case .number(let num):
@@ -165,13 +165,24 @@ public struct UnparsedExpression {
 
 extension Expression {
     
-    public enum Error : Swift.Error {
+    public enum Error : Swift.Error, LocalizedError {
         case firstTokenIsNotANumber(Expression.Token)
         case noTokens
         case notOperation(Token)
         case notANumber(Token)
         case evenNumberOfTokens
         case noOperations
+        
+        public var errorDescription: String? {
+            switch self {
+            case .firstTokenIsNotANumber:
+                return "The expression should start with a number"
+            case .noTokens, .evenNumberOfTokens, .noOperations:
+                return "Invalid expression"
+            case .notOperation, .notANumber:
+                return "Invalid order"
+            }
+        }
     }
     
     public convenience init(tokens: [Expression.Token]) throws {
@@ -195,20 +206,20 @@ extension Expression {
         self.init(rightmostNode: node)
     }
     
-    static func split(tokens: [Expression.Token]) throws -> [(ExpressionOperation, Int)] {
+    static func split(tokens: [Expression.Token]) throws -> [(ExpressionOperation, Double)] {
         var tokens = tokens
         var count = tokens.count
         guard count % 2 == 0 else {
             throw Error.evenNumberOfTokens
         }
-        var result: [(ExpressionOperation, Int)] = []
+        var result: [(ExpressionOperation, Double)] = []
         while count >= 2 {
             let first = tokens.removeFirst()
             let second = tokens.removeFirst()
             count -= 2
             
             var operation: ExpressionOperation
-            var number: Int
+            var number: Double
             
             if case .operation(let op) = first {
                 operation = op

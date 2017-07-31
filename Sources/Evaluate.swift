@@ -1,10 +1,11 @@
 // Swift Playground
+import Foundation
 
 public protocol ExpressionOperation {
     
     var priority: Int { get }
     
-    func evaluate(left: Int, right: Int) -> Int
+    func evaluate(left: Double, right: Double) -> Double
     
 }
 
@@ -37,7 +38,7 @@ public enum BasicArithmetic : ExpressionOperation, CustomStringConvertible {
         }
     }
     
-    public func evaluate(left: Int, right: Int) -> Int {
+    public func evaluate(left: Double, right: Double) -> Double {
         switch self {
         case .addition:
             return left + right
@@ -57,28 +58,28 @@ public class Expression {
     public class Node {
         
         public enum Neighbor {
-            case number(Int)
+            case number(Double)
             case unsolved(Node)
         }
         
         var left: Neighbor
-        var right: Int
+        var right: Double
         var operation: ExpressionOperation
         
-        public init(left: Int, operation: ExpressionOperation, right: Int) {
+        public init(left: Double, operation: ExpressionOperation, right: Double) {
             self.left = .number(left)
             self.operation = operation
             self.right = right
         }
         
-        public init(left: Node, operation: ExpressionOperation, right: Int) {
+        public init(left: Node, operation: ExpressionOperation, right: Double) {
             self.left = .unsolved(left)
             self.operation = operation
             self.right = right
         }
         
         public func string() -> String {
-            let num: Int = {
+            let num: Double = {
                 switch left {
                 case .number(let number):
                     return number
@@ -93,11 +94,12 @@ public class Expression {
             var str = ""
             switch left {
             case .number(let number):
-                str.append(String(number))
+                str.append(NumberFormatter.decimal.string(from: number as NSNumber) ?? "")
             case .unsolved(let node):
                 str.append(node.fullString())
             }
-            str.append("\(operation)\(right)")
+            let rightString = NumberFormatter.decimal.string(from: right as NSNumber) ?? ""
+            str.append("\(operation)\(rightString)")
             return str
         }
         
@@ -135,7 +137,7 @@ public class Expression {
             }
         }
         
-        func fullFold() -> Int {
+        func fullFold() -> Double {
             let folded = fold(highest: self)
             switch folded.neighbor {
             case .number(let num):
@@ -145,7 +147,7 @@ public class Expression {
             }
         }
         
-        func evaluateAll() -> Int {
+        func evaluateAll() -> Double {
             return fullFold()
         }
         
@@ -157,7 +159,7 @@ public class Expression {
         self.rightmostNode = rightmostNode
     }
     
-    public func evaluate() -> Int {
+    public func evaluate() -> Double {
         return rightmostNode.evaluateAll()
     }
     
@@ -165,21 +167,21 @@ public class Expression {
 
 public protocol Operatable {
     
-    func node(withOperation operation: ExpressionOperation, number: Int) -> Expression.Node
+    func node(withOperation operation: ExpressionOperation, number: Double) -> Expression.Node
     
 }
 
 extension Operatable {
     
-    public func op(_ operation: BasicArithmetic, _ number: Int) -> Expression.Node {
+    public func op(_ operation: BasicArithmetic, _ number: Double) -> Expression.Node {
         return node(withOperation: operation, number: number)
     }
     
 }
 
-extension Int : Operatable {
+extension Double : Operatable {
     
-    public func node(withOperation operation: ExpressionOperation, number: Int) -> Expression.Node {
+    public func node(withOperation operation: ExpressionOperation, number: Double) -> Expression.Node {
         return Expression.Node(left: self, operation: operation, right: number)
     }
     
@@ -187,7 +189,7 @@ extension Int : Operatable {
 
 extension Expression.Node : Operatable {
     
-    public func node(withOperation operation: ExpressionOperation, number: Int) -> Expression.Node {
+    public func node(withOperation operation: ExpressionOperation, number: Double) -> Expression.Node {
         return Expression.Node(left: self, operation: operation, right: number)
     }
     

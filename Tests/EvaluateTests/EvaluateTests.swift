@@ -3,7 +3,7 @@ import Evaluate
 
 extension Expression.Token {
     
-    func equals(_ number: Int) -> Bool {
+    func equals(_ number: Double) -> Bool {
         if case .number(let num) = self, num == number {
             return true
         }
@@ -61,7 +61,7 @@ class EvaluateTests: XCTestCase {
     func testParse() {
         let parser = NumberFormatter.expressionTokenParser.chained(with: BasicArithmetic.parser)
         let tokens = UnparsedExpression("7-9 times 10 + 187").parse(parser: parser, processor: .noProcessing)
-        XCTAssertEqual(tokens.expression_debug(), "7-9×10+187")
+        XCTAssertEqual(tokens.expression_debug(), "7.0-9.0×10.0+187.0")
     }
     
     func testNumbersParserCollapse() {
@@ -160,9 +160,9 @@ class EvaluateTests: XCTestCase {
     }
     
     func testEndToEnd3() throws {
-        let expression = try Expression(from: "19*23/12+34*12-5*2 divided by 2*3-1 plus eighty six")
+        let expression = try Expression(from: "one+19*23-12+34*12-5*2 divided by 2*3-1 plus eighty six")
         let result = expression.evaluate()
-        XCTAssertEqual(result, 514)
+        XCTAssertEqual(result, 904)
     }
     
     func testUsage() throws {
